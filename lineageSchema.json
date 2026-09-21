@@ -1,0 +1,134 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/data-lineage.json",
+  "title": "DataLineageDocument",
+  "description": "Single-document lineage of an object as it traverses sequential processing steps. The object's state at any step is reconstructed by replaying changes over initialState.",
+  "type": "object",
+  "required": ["lineageId", "objectId", "objectType", "createdAt", "initialState", "steps"],
+  "additionalProperties": false,
+  "properties": {
+    "lineageId": {
+      "type": "string",
+      "description": "Unique identifier of this lineage document."
+    },
+    "objectId": {
+      "type": "string",
+      "description": "Identifier of the business object being traced."
+    },
+    "objectType": {
+      "type": "string",
+      "description": "Domain type of the object, e.g. Order, Claim, Shipment."
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updatedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "initialState": {
+      "type": "object",
+      "description": "Full object state before the first step. Keys are field paths (dot notation for nested fields)."
+    },
+    "steps": {
+      "type": "array",
+      "description": "Ordered processing steps. sequence must be strictly increasing starting at 1.",
+      "items": { "$ref": "#/$defs/Step" }
+    },
+    "checkpoints": {
+      "type": "array",
+      "description": "Optional periodic full-state snapshots so long lineages need not replay from the start.",
+      "items": {
+        "type": "object",
+        "required": ["afterSequence", "state"],
+        "additionalProperties": false,
+        "properties": {
+          "afterSequence": { "type": "integer", "minimum": 1 },
+          "state": { "type": "object" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "Step": {
+      "type": "object",
+      "required": ["stepId", "sequence", "name", "timestamp", "changes"],
+      "additionalProperties": false,
+      "properties": {
+        "stepId": { "type": "string" },
+        "sequence": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "1-based position of the step in the pipeline."
+        },
+        "name": {
+          "type": "string",
+          "description": "Human-readable step name shown in the UI."
+        },
+        "system": {
+          "type": "string",
+          "description": "Service or component that performed the step."
+        },
+        "actor": {
+          "type": "string",
+          "description": "Who triggered it: 'system' or 'user:<id>'."
+        },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "description": {
+          "type": "string",
+          "description": "Optional longer explanation for the detail panel."
+        },
+        "changes": {
+          "type": "array",
+          "minItems": 0,
+          "items": { "$ref": "#/$defs/Change" }
+        }
+      }
+    },
+    "Change": {
+      "type": "object",
+      "required": ["field", "operation"],
+      "additionalProperties": false,
+      "properties": {
+        "field": {
+          "type": "string",
+          "description": "Field path in dot notation, e.g. 'shipping.address.city'."
+        },
+        "operation": {
+          "type": "string",
+          "enum": ["ADD", "MODIFY", "SOFT_DELETE"]
+        },
+        "oldValue": {
+          "description": "Value before the change. null for ADD."
+        },
+        "newValue": {
+          "description": "Value after the change. null for SOFT_DELETE."
+        },
+        "reason": {
+          "type": "string",
+          "description": "Optional business justification, surfaced in the detail panel."
+        },
+        "deletedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Only for SOFT_DELETE."
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "operation": { "const": "ADD" } } },
+          "then": { "required": ["newValue"] }
+        },
+        {
+          "if": { "properties": { "operation": { "const": "MODIFY" } } },
+          "then": { "required": ["oldValue", "newValue"] }
+        },
+        {
+          "if": { "properties": { "operation": { "const": "SOFT_DELETE" } } },
+          "then": { "required": ["oldValue"] }
+        }
+      ]
+    }
+  }
+}
