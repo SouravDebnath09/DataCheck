@@ -1,0 +1,164 @@
+{
+  "lineageId": "lin-4c19",
+  "objectId": "loan-app-77123",
+  "objectType": "LoanApplication",
+  "createdAt": "2026-07-01T08:00:00Z",
+  "updatedAt": "2026-07-05T17:45:00Z",
+  "initialState": {
+    "applicationId": "loan-app-77123",
+    "applicant.name": "Priya Nair",
+    "applicant.creditScore": 690,
+    "requestedAmount": 20000,
+    "status": "SUBMITTED"
+  },
+  "steps": [
+    {
+      "stepId": "step-1",
+      "sequence": 1,
+      "name": "Identity Verification",
+      "system": "kyc-service",
+      "actor": "system",
+      "timestamp": "2026-07-01T08:04:00Z",
+      "description": "Automated KYC check against government ID and address records.",
+      "changes": [
+        {
+          "field": "kycStatus",
+          "operation": "ADD",
+          "oldValue": null,
+          "newValue": "VERIFIED"
+        },
+        {
+          "field": "status",
+          "operation": "MODIFY",
+          "oldValue": "SUBMITTED",
+          "newValue": "IDENTITY_VERIFIED"
+        }
+      ]
+    },
+    {
+      "stepId": "step-2",
+      "sequence": 2,
+      "name": "Credit Assessment",
+      "system": "credit-risk-service",
+      "actor": "system",
+      "timestamp": "2026-07-02T10:15:00Z",
+      "description": "Pulls latest bureau score and computes risk tier.",
+      "changes": [
+        {
+          "field": "applicant.creditScore",
+          "operation": "MODIFY",
+          "oldValue": 690,
+          "newValue": 705,
+          "reason": "Refreshed bureau pull"
+        },
+        {
+          "field": "riskTier",
+          "operation": "ADD",
+          "oldValue": null,
+          "newValue": "TIER_2"
+        }
+      ]
+    },
+    {
+      "stepId": "step-3",
+      "sequence": 3,
+      "name": "Promotional Rate Offer",
+      "system": "pricing-engine",
+      "actor": "system",
+      "timestamp": "2026-07-03T09:00:00Z",
+      "description": "Applies a limited-time promotional interest rate.",
+      "changes": [
+        {
+          "field": "promoRateCode",
+          "operation": "ADD",
+          "oldValue": null,
+          "newValue": "SUMMER26"
+        },
+        {
+          "field": "interestRate",
+          "operation": "ADD",
+          "oldValue": null,
+          "newValue": 5.25
+        }
+      ]
+    },
+    {
+      "stepId": "step-4",
+      "sequence": 4,
+      "name": "Underwriting Review",
+      "system": "underwriting-console",
+      "actor": "user:rgarcia",
+      "timestamp": "2026-07-04T14:30:00Z",
+      "description": "Underwriter revoked the promo rate as ineligible for this risk tier and approved a standard rate.",
+      "changes": [
+        {
+          "field": "promoRateCode",
+          "operation": "SOFT_DELETE",
+          "oldValue": "SUMMER26",
+          "newValue": null,
+          "reason": "Promo not eligible for TIER_2 risk applicants",
+          "deletedAt": "2026-07-04T14:30:00Z"
+        },
+        {
+          "field": "interestRate",
+          "operation": "MODIFY",
+          "oldValue": 5.25,
+          "newValue": 6.75,
+          "reason": "Standard tier-2 rate applied"
+        },
+        {
+          "field": "requestedAmount",
+          "operation": "MODIFY",
+          "oldValue": 20000,
+          "newValue": 18000,
+          "reason": "Reduced to fit approved debt-to-income ratio"
+        },
+        {
+          "field": "status",
+          "operation": "MODIFY",
+          "oldValue": "IDENTITY_VERIFIED",
+          "newValue": "UNDERWRITING_APPROVED"
+        }
+      ]
+    },
+    {
+      "stepId": "step-5",
+      "sequence": 5,
+      "name": "Disbursement",
+      "system": "disbursement-service",
+      "actor": "system",
+      "timestamp": "2026-07-05T17:45:00Z",
+      "description": "Funds released to the applicant's linked account.",
+      "changes": [
+        {
+          "field": "disbursedAmount",
+          "operation": "ADD",
+          "oldValue": null,
+          "newValue": 18000
+        },
+        {
+          "field": "status",
+          "operation": "MODIFY",
+          "oldValue": "UNDERWRITING_APPROVED",
+          "newValue": "DISBURSED"
+        }
+      ]
+    }
+  ],
+  "checkpoints": [
+    {
+      "afterSequence": 3,
+      "state": {
+        "applicationId": "loan-app-77123",
+        "applicant.name": "Priya Nair",
+        "applicant.creditScore": 705,
+        "requestedAmount": 20000,
+        "status": "IDENTITY_VERIFIED",
+        "kycStatus": "VERIFIED",
+        "riskTier": "TIER_2",
+        "promoRateCode": "SUMMER26",
+        "interestRate": 5.25
+      }
+    }
+  ]
+}
